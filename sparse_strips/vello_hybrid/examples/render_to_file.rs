@@ -50,15 +50,13 @@ async fn run() {
         compatible_surface: None,
     }))
     .expect("Failed to find an appropriate adapter");
-    let (device, queue) = pollster::block_on(adapter.request_device(
-        &wgpu::DeviceDescriptor {
-            label: Some("Device"),
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
-            memory_hints: wgpu::MemoryHints::default(),
-        },
-        None,
-    ))
+    let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("Device"),
+        required_features: wgpu::Features::empty(),
+        required_limits: wgpu::Limits::default(),
+        memory_hints: wgpu::MemoryHints::default(),
+        trace: wgpu::Trace::Off,
+    }))
     .expect("Failed to create device");
 
     // Create a render target texture
@@ -154,7 +152,7 @@ async fn run() {
                 panic!("Failed to map texture for reading");
             }
         });
-    device.poll(wgpu::Maintain::Wait);
+    _ = device.poll(wgpu::PollType::Wait);
 
     // Read back the pixel data
     let mut img_data = Vec::with_capacity(usize::from(width) * usize::from(height) * 4);

@@ -183,19 +183,18 @@ impl RenderContext {
     async fn new_device(&mut self, compatible_surface: Option<&Surface<'_>>) -> Option<usize> {
         let adapter =
             wgpu::util::initialize_adapter_from_env_or_default(&self.instance, compatible_surface)
-                .await?;
+                .await
+                .ok()?;
         let limits = Limits::default();
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: Features::empty(),
-                    required_limits: limits,
-                    memory_hints: MemoryHints::default(),
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: Features::empty(),
+                required_limits: limits,
+                memory_hints: MemoryHints::default(),
+                trace: wgpu::Trace::Off,
+            })
             .await
             .ok()?;
         let device_handle = DeviceHandle {

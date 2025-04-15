@@ -153,7 +153,8 @@ impl RenderContext {
     async fn new_device(&mut self, compatible_surface: Option<&Surface<'_>>) -> Option<usize> {
         let adapter =
             wgpu::util::initialize_adapter_from_env_or_default(&self.instance, compatible_surface)
-                .await?;
+                .await
+                .ok()?;
         let features = adapter.features();
         let limits = Limits::default();
         let maybe_features = wgpu::Features::CLEAR_TEXTURE;
@@ -161,15 +162,13 @@ impl RenderContext {
         let maybe_features = maybe_features | wgpu_profiler::GpuProfiler::ALL_WGPU_TIMER_FEATURES;
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: features & maybe_features,
-                    required_limits: limits,
-                    memory_hints: MemoryHints::default(),
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: features & maybe_features,
+                required_limits: limits,
+                memory_hints: MemoryHints::default(),
+                trace: wgpu::Trace::Off,
+            })
             .await
             .ok()?;
         let device_handle = DeviceHandle {
@@ -258,7 +257,7 @@ pub fn block_on_wgpu<F: Future>(device: &Device, mut fut: F) -> F::Output {
     loop {
         match fut.as_mut().poll(&mut context) {
             std::task::Poll::Pending => {
-                device.poll(wgpu::Maintain::Wait);
+                _ = device.poll(wgpu::PollType::Wait);
             }
             std::task::Poll::Ready(item) => break item,
         }
